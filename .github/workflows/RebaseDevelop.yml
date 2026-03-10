@@ -1,0 +1,54 @@
+# Rebases the develop branch against the main branch.
+# Only ever rebase from the main branch, and then, only if the Release
+#   workflow completed with success.
+name: RebaseDevelop
+on:
+  workflow_run:
+    workflows: [Release]
+    types:
+      - completed
+
+jobs:
+  build:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    # Required to create releases and upload assets
+    
+    steps:
+      - name: "Artifact upload"
+        id: artifactupload
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: |
+            extras/unit_tests/build
+          if-no-files-found: error
+          compression-level: 7
+          overwrite: false
+          include-hidden-files: true
+        run: |
+          echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+          gh release create "$(cat VERSION)" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
+              --generate-notes
+      
+      - name: "RebaseDevelop"
+        if : ${{ steps.artifactupload.outputs.result == 'success' }}
+        id:   rebasedev
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+        run: | 
+          
+      - name: "PushDevelop"
+        if : ${{ steps.rebasedev.outputs.result == 'success' }}
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+        run: |
+          echo "$tag" > VERSION
