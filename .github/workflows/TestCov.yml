@@ -1,19 +1,28 @@
-name: TestCovAndDoc
+# Test coverage
+name: TestCov
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
   pull_request:
-    branches: [ "master" ]
-
+    branches: [ "master", "develop" ]
+  workflow_dispatch:
+    inputs:
+      deployment_context:
+        description: 'Deployment context'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - testing
+        - prod
+        
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-    
     # This library is most-commonly run on 32-bit targets. So we need to put together
     #   a GCC environment that supports it.
     - name: Set up GCC
@@ -22,17 +31,18 @@ jobs:
         version: latest
         platform: x86
     - name: Install tools
-      run: sudo apt install -y cppcheck lcov graphviz doxygen
+      run: sudo apt install -y cppcheck lcov 
     - name: make
-      run: cd extras/unit_tests; make coverage check
-    - name: build-doc
-      run: doxygen Doxyfile
+      run: |
+        echo "Tags: $TAGS"
+        echo "Tags: $deployment_context"        
+        echo "Environment: $ENVIRONMENT"    
+        cd extras/unit_tests; make coverage check
     - uses: actions/upload-artifact@v4
       with:
         name: results
         path: |
           extras/unit_tests/build 
-          extras/doc/doxygen
         if-no-files-found: error
         compression-level: 7
         overwrite: false
