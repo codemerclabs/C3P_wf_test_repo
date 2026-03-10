@@ -1,8 +1,9 @@
 name: DocGen
 on:
   workflow_run:
-    workflows: [ TestCov ]
-    types: [completed]
+    workflows: [TestCov]
+    types: 
+      - completed
       
 jobs:
   build:
