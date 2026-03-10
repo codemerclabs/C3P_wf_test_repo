@@ -1,0 +1,24 @@
+name: DocGen
+on:
+  workflow_run:
+    workflows: [ "TestCov" ]
+    types: [completed]
+      
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install tools
+      run: sudo apt install -y graphviz doxygen
+    - name: build-doc
+      run: doxygen Doxyfile
+    - uses: actions/upload-artifact@v4
+      with:
+        name: results
+        path: |
+          extras/doc/doxygen
+        if-no-files-found: error
+        compression-level: 8
+        overwrite: false
+        include-hidden-files: true
